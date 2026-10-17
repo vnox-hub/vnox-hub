@@ -1,19 +1,15 @@
 --[[
     VNOX HUB  |  Loader
     Cara pakai di executor:
-
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/vnox-hub/vnox-hub/refs/heads/main/main/Loader.lua", true))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/vnox-hub/vnox-hub/refs/heads/main/Loader.lua", true))()
 ]]
 
 local USER   = "vnox-hub"
-local REPO   = "vnox-hub"   -- nama repo
+local REPO   = "vnox-hub"
 local BRANCH = "main"
 
 local BASE = ("https://raw.githubusercontent.com/%s/%s/refs/heads/%s/"):format(USER, REPO, BRANCH)
 
--- Modul per game: [PlaceId] = "path/di/repo.lua"
--- Isi hanya dengan script buatanmu sendiri, atau script orang lain
--- yang pembuatnya sudah memberi izin.
 local GAMES = {
     -- [1234567890] = "games/contoh.lua",
 }
@@ -23,34 +19,41 @@ local function log(msg)
 end
 
 local function run(path)
-    local url = BASE .. path .. "?t=" .. os.time() -- ?t= supaya tidak kena cache lama
+    local url = BASE .. path .. "?t=" .. os.time()
 
     local okGet, src = pcall(function()
         return game:HttpGet(url, true)
     end)
     if not okGet then
         warn("[VNOX Loader] gagal download " .. path .. ": " .. tostring(src))
-        return false
+        return nil -- Ubah return menjadi nil jika gagal
     end
 
     local fn, err = loadstring(src)
     if not fn then
         warn("[VNOX Loader] error sintaks di " .. path .. ": " .. tostring(err))
-        return false
+        return nil
     end
 
-    local okRun, runErr = pcall(fn)
+    -- pcall mengembalikan status sukses (okRun) dan hasil eksekusi dari script (result)
+    local okRun, result = pcall(fn) 
     if not okRun then
-        warn("[VNOX Loader] error saat jalan di " .. path .. ": " .. tostring(runErr))
-        return false
+        warn("[VNOX Loader] error saat jalan di " .. path .. ": " .. tostring(result))
+        return nil
     end
-    return true
+    
+    return result -- Kembalikan result (Library UI)
 end
 
 log("memuat hub...")
-if not run("main/Hub.lua") then
+-- Ubah dari "main/Hub.lua" menjadi "Hub.lua"
+local VnoxLibrary = run("Hub.lua") 
+if not VnoxLibrary then
     return
 end
+
+-- Simpan Library ke Global Environment agar bisa diakses script game
+getgenv().VnoxHub = VnoxLibrary 
 
 local gamePath = GAMES[game.PlaceId]
 if gamePath then
